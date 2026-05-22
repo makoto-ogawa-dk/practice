@@ -1,5 +1,3 @@
-const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
-
 function switchView(nextView) {
   document.querySelectorAll('.view').forEach((el) => el.classList.add('hidden'));
   const target = document.getElementById(`view-${nextView}`);
@@ -15,7 +13,7 @@ async function loadResources() {
   message.textContent = '読み込み中...';
 
   try {
-    const res = await fetch(`${API_BASE}/api/resources`);
+    const res = await fetch('/api/resources');
     if (!res.ok) {
       throw new Error(`status: ${res.status}`);
     }

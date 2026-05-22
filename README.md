@@ -15,8 +15,15 @@ docker compose up --build
 
 起動後:
 - Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8080`
-- Health check: `http://localhost:8080/health`
+- Browser からの API 呼び出し: `http://localhost:3000/api/...`（frontend の Nginx が backend にプロキシ）
+- Backend（直接確認用）: `http://localhost:8080`
+- Health check（直接確認用）: `http://localhost:8080/health`
+
+## Frontend-Backend 接続方針（local container / ARO）
+- ブラウザは frontend のオリジンのみにアクセスします。
+- フロントエンドの JavaScript は相対パス `/api/...` で API を呼び出します。
+- frontend コンテナの Nginx が `/api/*` を backend サービスへリバースプロキシします。
+- ARO/OpenShift でも同じ構成（Browser -> frontend Route/Service -> `/api` proxy -> backend Service）で運用できます。
 
 ## API ルート（初期スキャフォールド）
 - `GET/POST /api/resources`
