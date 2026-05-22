@@ -15,8 +15,22 @@ docker compose up --build
 
 起動後:
 - Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8080`
-- Health check: `http://localhost:8080/health`
+- Health check (backend): `http://localhost:8080/health`
+
+## 接続モデル（local containers / ARO）
+- ブラウザは **frontend のオリジンのみ** にアクセスします。
+- フロントエンドの JavaScript は `fetch('/api/...')` の相対パスで API を呼び出します。
+- `frontend/nginx.conf` の `/api/` は backend サービスへ内部プロキシされます。
+
+### ローカル（Docker Compose）
+- Browser -> `frontend` (`http://localhost:3000`)
+- Frontend Nginx -> `backend:8080`（Compose ネットワーク内）
+
+### ARO/OpenShift 想定
+- Browser -> Frontend Route/Service
+- Frontend Pod の Nginx -> Backend Service（クラスタ内部通信）
+
+このため、利用者（ブラウザ）からは backend の URL を直接意識せず、常に frontend 経由で `/api` を利用します。
 
 ## API ルート（初期スキャフォールド）
 - `GET/POST /api/resources`
