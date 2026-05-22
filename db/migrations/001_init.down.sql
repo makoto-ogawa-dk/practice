@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS allocations;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS resources;
