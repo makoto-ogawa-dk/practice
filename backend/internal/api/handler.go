@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -362,24 +361,27 @@ RETURNING project_id`, id).Scan(&newID)
 }
 
 func (h *Handler) listAllocations(w http.ResponseWriter, r *http.Request) {
-	query := `SELECT allocation_id, target_month, resource_id, project_id, workload, note FROM allocations WHERE 1=1`
-	args := []interface{}{}
+	month := strings.TrimSpace(r.URL.Query().Get("month"))
+	resourceID, err := parseOptionalInt64(r.URL.Query().Get("resource_id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "validation error", "resource_id", "invalid")
+		return
+	}
+	projectID, err := parseOptionalInt64(r.URL.Query().Get("project_id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "validation error", "project_id", "invalid")
+		return
+	}
 
-	if month := strings.TrimSpace(r.URL.Query().Get("month")); month != "" {
-		query += fmt.Sprintf(" AND target_month=$%d", len(args)+1)
-		args = append(args, month)
-	}
-	if resourceID := strings.TrimSpace(r.URL.Query().Get("resource_id")); resourceID != "" {
-		query += fmt.Sprintf(" AND resource_id=$%d", len(args)+1)
-		args = append(args, resourceID)
-	}
-	if projectID := strings.TrimSpace(r.URL.Query().Get("project_id")); projectID != "" {
-		query += fmt.Sprintf(" AND project_id=$%d", len(args)+1)
-		args = append(args, projectID)
-	}
-	query += " ORDER BY target_month, resource_id, project_id"
-
-	rows, err := h.db.Query(query, args...)
+	rows, err := h.db.Query(`
+SELECT allocation_id, target_month, resource_id, project_id, workload, note
+FROM allocations
+WHERE ($1 = '' OR target_month = $1)
+  AND ($2::bigint IS NULL OR resource_id = $2::bigint)
+  AND ($3::bigint IS NULL OR project_id = $3::bigint)
+ORDER BY target_month, resource_id, project_id`,
+		month, resourceID, projectID,
+	)
 	if err != nil {
 		writeInternalError(w, err)
 		return
@@ -618,4 +620,16 @@ func derefTrim(v *string) string {
 
 func isConflict(err error) bool {
 	return strings.Contains(err.Error(), "duplicate key value violates unique constraint")
+}
+
+func parseOptionalInt64(raw string) (*int64, error) {
+	v := strings.TrimSpace(raw)
+	if v == "" {
+		return nil, nil
+	}
+	parsed, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
 }
